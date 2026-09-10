@@ -9,7 +9,7 @@ import RestaurantScreen from "./src/screens/RestaurantScreen";
 import CartScreen from "./src/screens/CartScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import SearchScreen from "./src/screens/SearchScreen";
-import {ThemeProvider,} from "./src/context/ThemeContext";
+import {ThemeProvider} from "./src/context/ThemeContext";
 import FavoriteScreen from "./src/screens/FavoriteScreen";
 
 

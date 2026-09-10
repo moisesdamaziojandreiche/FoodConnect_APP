@@ -7,18 +7,51 @@ import {
   Switch,
 } from "react-native";
 
-import { usuarioLogado } from "../data/user";
+import { supabase } from "../lib/supabase";
 import Menu from "../components/Menu";
 import { ThemeContext } from "../context/ThemeContext";
 
 export default function ProfileScreen({
   navigation,
 }) {
+  const [userName, setUserName] = React.useState(null);
+  const [userEmail, setUserEmail] = React.useState(null);
   const {
     temaEscuro,
     setTemaEscuro,
     cores,
   } = useContext(ThemeContext);
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function loadUser() {
+      try {
+        if (supabase && supabase.auth) {
+          if (typeof supabase.auth.getUser === "function") {
+            const { data, error } = await supabase.auth.getUser();
+            const user = data?.user;
+            if (user && mounted) {
+              setUserName(user.user_metadata?.name || user.email);
+              setUserEmail(user.email);
+            }
+          } else if (typeof supabase.auth.getSession === "function") {
+            const { data } = await supabase.auth.getSession();
+            const user = data?.session?.user;
+            if (user && mounted) {
+              setUserName(user.user_metadata?.name || user.email);
+              setUserEmail(user.email);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Erro ao obter usuário do Supabase:", e);
+      }
+    }
+    loadUser();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <View
@@ -62,7 +95,7 @@ export default function ProfileScreen({
           },
         ]}
       >
-        Olá, {usuarioLogado?.nome}
+        Olá, {userName ?? "Usuário"}
       </Text>
 
       <Text
@@ -74,7 +107,7 @@ export default function ProfileScreen({
           },
         ]}
       >
-        {usuarioLogado?.email}
+        {userEmail ?? ""}
       </Text>
 
       <View
