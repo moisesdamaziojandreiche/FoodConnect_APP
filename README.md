@@ -52,3 +52,12 @@ O schema de pedidos está em `supabase/migrations`. Antes de produção, a Edge 
 npm install
 npx expo start
 ```
+
+
+npx supabase login
+npx supabase link --project-ref qhssnuzrvmrsnuzuiwdz
+npx supabase functions deploy create-payment
+npx supabase functions deploy mp-webhook --no-verify-jwt
+mkdir supabase\functions\mp-webhook
+New-Item supabase\functions\mp-webhook\index.ts
+code supabase\functions\mp-webhook\index.ts

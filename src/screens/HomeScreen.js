@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from "react-native";
 
-import { restaurantes } from "../data/restaurantes";
+import { useRestaurantes } from "../data/restaurantes";
 import Menu from "../components/Menu";
 import { ThemeContext } from "../context/ThemeContext";
 
@@ -16,6 +16,7 @@ export default function HomeScreen({
 }) {
   const { cores } =
     useContext(ThemeContext);
+  const { restaurantes, carregando, erro } = useRestaurantes();
 
   return (
     <View
@@ -40,6 +41,15 @@ export default function HomeScreen({
 
       <FlatList
         data={restaurantes}
+        ListEmptyComponent={
+          <Text style={{ color: cores.secundario }}>
+            {carregando
+              ? "Carregando restaurantes..."
+              : erro
+              ? `Erro ao carregar restaurantes: ${erro}`
+              : "Nenhum restaurante disponível."}
+          </Text>
+        }
         keyExtractor={(item) =>
           item.id.toString()
         }

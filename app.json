@@ -30,7 +30,8 @@
       "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_XP7PwbwclYA70bEPPKQ4-Q_nwGDgkAa"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-font"
     ]
   }
 }

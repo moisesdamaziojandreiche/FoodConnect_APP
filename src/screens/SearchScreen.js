@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-import { restaurantes } from "../data/restaurantes";
+import { useRestaurantes } from "../data/restaurantes";
 import Menu from "../components/Menu";
 import { ThemeContext } from "../context/ThemeContext";
 
@@ -17,6 +17,7 @@ export default function SearchScreen({
 }) {
   const [busca, setBusca] = useState("");
   const { cores } = useContext(ThemeContext);
+  const { restaurantes, carregando, erro } = useRestaurantes();
 
   const resultado = restaurantes.filter((r) =>
     r.nome
@@ -46,6 +47,17 @@ export default function SearchScreen({
 
       <FlatList
         data={resultado}
+        ListEmptyComponent={
+          <Text style={{ color: cores.secundario }}>
+            {carregando
+              ? "Carregando restaurantes..."
+              : erro
+              ? `Erro ao carregar restaurantes: ${erro}`
+              : busca
+              ? "Nenhum restaurante encontrado."
+              : "Nenhum restaurante disponível."}
+          </Text>
+        }
         keyExtractor={(item) =>
           item.id.toString()
         }

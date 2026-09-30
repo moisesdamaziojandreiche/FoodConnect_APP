@@ -1,76 +1,47 @@
-export const restaurantes = [
-  {
-    id: 1,
-    nome: "Burger House",
-    categoria: "Hambúrguer",
-    nota: 4.8,
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-    produtos: [
-      {
-        id: 1,
-        nome: "X-Burger",
-        preco: 25.9,
-      },
+const NAO_CONFIGURADO = { message: "Supabase não configurado" };
 
-      {
-        id: 2,
-        nome: "Batata Frita",
-        preco: 12.0,
-      },
+// Restaurantes = tabela `empresas` (a mesma que o painel administra).
+export async function listarRestaurantes() {
+  if (!supabase.from) return { data: [], error: NAO_CONFIGURADO };
 
-      {
-        id: 3,
-        nome: "Refrigerante",
-        preco: 8.0,
-      },
-    ],
-  },
+  return supabase
+    .from("empresas")
+    .select("id, nome, descricao, categoria, nota, tempo_preparo_min, endereco, telefone, logo_url")
+    .eq("ativo", true)
+    .order("nome");
+}
 
-  {
-    id: 2,
-    nome: "Pizza Express",
-    categoria: "Pizza",
-    nota: 4.7,
+// Produtos cadastrados pelo restaurante no painel.
+export async function listarProdutos(empresaId) {
+  if (!supabase.from) return { data: [], error: NAO_CONFIGURADO };
 
-    produtos: [
-      {
-        id: 1,
-        nome: "Pizza Calabresa",
-        preco: 45.9,
-      },
+  return supabase
+    .from("produtos")
+    .select("id, nome, descricao, preco, imagem_url")
+    .eq("empresa_id", empresaId)
+    .order("ordem")
+    .order("nome");
+}
 
-      {
-        id: 2,
-        nome: "Pizza Portuguesa",
-        preco: 49.9,
-      },
+export function useRestaurantes() {
+  const [restaurantes, setRestaurantes] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
 
-      {
-        id: 3,
-        nome: "Coca-Cola 2L",
-        preco: 14.0,
-      },
-    ],
-  },
+  const recarregar = useCallback(async () => {
+    setCarregando(true);
+    const { data, error } = await listarRestaurantes();
+    setErro(error ? error.message : null);
+    setRestaurantes(data || []);
+    setCarregando(false);
+  }, []);
 
-  {
-    id: 3,
-    nome: "Sushi Master",
-    categoria: "Japonesa",
-    nota: 4.9,
+  useEffect(() => {
+    recarregar();
+  }, [recarregar]);
 
-    produtos: [
-      {
-        id: 1,
-        nome: "Combo 20 peças",
-        preco: 49.9,
-      },
-
-      {
-        id: 2,
-        nome: "Temaki Salmão",
-        preco: 22.0,
-      },
-    ],
-  },
-];
+  return { restaurantes, carregando, erro, recarregar };
+}

@@ -1,4 +1,4 @@
-import React, {useContext} from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 
 import { carrinho } from "../data/carrinho";
 import { favoritos } from "../data/favoritos";
+import { listarProdutos } from "../data/restaurantes";
 import { ThemeContext } from "../context/ThemeContext";
 
 
@@ -21,200 +22,192 @@ export default function RestaurantScreen({
 
   const { cores } = useContext(ThemeContext);
 
-  function adicionarCarrinho(produto) {
-  const chaveProduto =
-    `${restaurante.id}-${produto.id}`;
+  const [produtos, setProdutos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
 
-  const itemExistente =
-    carrinho.find(
-      (item) =>
-        item.chaveProduto ===
-        chaveProduto
-    );
+  // Cardápio vem do banco: os mesmos produtos que o restaurante cadastra no painel.
+  useEffect(() => {
+    let ativo = true;
 
-  if (itemExistente) {
-    itemExistente.quantidade += 1;
-  } else {
-    carrinho.push({
-      ...produto,
-      chaveProduto,
-      restauranteId: restaurante.id,
-      restauranteNome: restaurante.nome,
-      quantidade: 1,
+    listarProdutos(restaurante.id).then(({ data, error }) => {
+      if (!ativo) return;
+
+      if (error) {
+        setErro(error.message);
+      } else {
+        setProdutos(data || []);
+      }
+
+      setCarregando(false);
     });
-  }
 
-  Alert.alert(
-    "Sucesso",
-    `${produto.nome} adicionado ao carrinho`
-  );
+    return () => {
+      ativo = false;
+    };
+  }, [restaurante.id]);
 
-  console.log(carrinho);
-}
+  function inserirNoCarrinho(produto) {
+    const chaveProduto = `${restaurante.id}-${produto.id}`;
 
-  
-  
-
-function favoritarRestaurante() {
-  const existe = favoritos.find(
-    (item) =>
-      item.id === restaurante.id
-  );
-
-  if (existe) {
-    Alert.alert(
-      "Aviso",
-      "Restaurante já favoritado"
+    const itemExistente = carrinho.find(
+      (item) => item.chaveProduto === chaveProduto
     );
-    return;
+
+    if (itemExistente) {
+      itemExistente.quantidade += 1;
+    } else {
+      carrinho.push({
+        id: produto.id,
+        nome: produto.nome,
+        preco: Number(produto.preco),
+        chaveProduto,
+        restauranteId: restaurante.id,
+        restauranteNome: restaurante.nome,
+        restauranteEndereco: restaurante.endereco || "",
+        quantidade: 1,
+      });
+    }
+
+    Alert.alert(
+      "Sucesso",
+      `${produto.nome} adicionado ao carrinho`
+    );
   }
 
-  favoritos.push(restaurante);
+  // Um pedido pertence a um único restaurante.
+  function adicionarCarrinho(produto) {
+    if (
+      carrinho.length > 0 &&
+      carrinho[0].restauranteId !== restaurante.id
+    ) {
+      Alert.alert(
+        "Carrinho de outro restaurante",
+        `Seu carrinho tem itens de ${carrinho[0].restauranteNome}. Deseja esvaziá-lo e começar um novo pedido aqui?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Esvaziar e adicionar",
+            style: "destructive",
+            onPress: () => {
+              carrinho.length = 0;
+              inserirNoCarrinho(produto);
+            },
+          },
+        ]
+      );
+      return;
+    }
 
-  Alert.alert(
-    "Sucesso",
-    "Restaurante adicionado aos favoritos"
-  );
+    inserirNoCarrinho(produto);
+  }
 
-  console.log(favoritos);
-}
+  function favoritarRestaurante() {
+    const existe = favoritos.find(
+      (item) => item.id === restaurante.id
+    );
+
+    if (existe) {
+      Alert.alert("Aviso", "Restaurante já favoritado");
+      return;
+    }
+
+    favoritos.push(restaurante);
+
+    Alert.alert(
+      "Sucesso",
+      "Restaurante adicionado aos favoritos"
+    );
+  }
 
   return (
-    <View style={[styles.container,
-    {
-      backgroundColor:  cores.fundo,
-    },]}
->
-      <Text style={[styles.nome,
-        {
-          color: cores.texto,
-        },
-      ]}>
+    <View style={[styles.container, { backgroundColor: cores.fundo }]}>
+      <Text style={[styles.nome, { color: cores.texto }]}>
         {restaurante.nome}
       </Text>
 
       <TouchableOpacity
-        style={[styles.botaoFavorito,
-          {
-            backgroundColor:
-            cores.principal,
-          },
-        ]}
-          onPress={favoritarRestaurante}>
-        <Text style={styles.textoFavorito}>
-          Favoritar
-        </Text>
+        style={[styles.botaoFavorito, { backgroundColor: cores.principal }]}
+        onPress={favoritarRestaurante}
+      >
+        <Text style={styles.textoFavorito}>Favoritar</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.info,
-        {
-          color:
-          cores.secundario,
-        },
-      ]}>
-        {restaurante.categoria}
+      {!!restaurante.categoria && (
+        <Text style={[styles.info, { color: cores.secundario }]}>
+          {restaurante.categoria}
+        </Text>
+      )}
+
+      <Text style={[styles.info, { color: cores.secundario }]}>
+        {restaurante.nota ? `⭐ ${restaurante.nota}` : "Novo"}
       </Text>
 
-      <Text style={[styles.info,
-        {
-          color:
-          cores.secundario,
-        },
-      ]}>
-         {restaurante.nota}
+      {!!restaurante.tempo_preparo_min && (
+        <Text style={[styles.info, { color: cores.secundario }]}>
+          Preparo: ~{restaurante.tempo_preparo_min} min
+        </Text>
+      )}
+
+      <Text style={[styles.info, { color: cores.secundario }]}>
+        Retirada no local
+        {restaurante.endereco ? `: ${restaurante.endereco}` : ""}
       </Text>
 
-      <Text style={[styles.info,
-        {
-          color:
-          cores.secundario,
-        },
-      ]}>
-         {restaurante.tempoEntrega}
-      </Text>
-
-      <Text style={[styles.info,
-        {
-          color:
-          cores.secundario,
-        },
-      ]}>
-        Taxa: {restaurante.taxaEntrega}
-      </Text>
-
-      <Text style={[styles.tituloProdutos,
-        {
-          color: cores.texto,
-        },
-      ]}>
+      <Text style={[styles.tituloProdutos, { color: cores.texto }]}>
         Cardápio
-      </Text>
-
-      <TouchableOpacity
-        style={[styles.botaoCarrinho,
-          {
-            backgroundColor: cores.principal,
-          },
-        ]}
-        onPress={() =>
-          navigation.navigate("Carrinho")
-        }
-      >
-
+        </Text>
       <FlatList
-        data={restaurante.produtos}
-        keyExtractor={(item) =>
-          item.id.toString()
+        style={{ flex: 1 }}
+        data={produtos}
+        keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={
+          <Text style={{ color: cores.secundario }}>
+            {erro
+              ? `Erro ao carregar: ${erro}`
+              : carregando
+              ? "Carregando..."
+              : "Este restaurante ainda não cadastrou produtos."}
+          </Text>
         }
         renderItem={({ item }) => (
-          <View style={[styles.produto,
-            {
-              borderBottomColor:
-              cores.secundario,
-            },
-          ]}>
-
-          <View>
-            <Text style={[styles.produtoNome,
-              {
-                color: cores.texto,
-              },
-            ]}>
-              {item.nome}
-            </Text>
-
-            <Text style={[styles.preco,
-              {
-                color: cores.secundario,
-              },
-            ]}>
-              R$ {item.preco.toFixed(2)}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.botao,
-              {
-                backgroundColor: cores.principal,
-              },
+          <View
+            style={[
+              styles.produto,
+              { borderBottomColor: cores.secundario },
             ]}
-            onPress={() =>
-            adicionarCarrinho(item)
-            }
           >
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={[styles.produtoNome, { color: cores.texto }]}>
+                {item.nome}
+              </Text>
 
-          <Text style={styles.botaoTexto}>
-            +
-          </Text>
+              {!!item.descricao && (
+                <Text style={{ color: cores.secundario, marginTop: 2 }}>
+                  {item.descricao}
+                </Text>
+              )}
+
+              <Text style={[styles.preco, { color: cores.secundario }]}>
+                R$ {Number(item.preco).toFixed(2)}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.botao, { backgroundColor: cores.principal }]}
+              onPress={() => adicionarCarrinho(item)}
+            >
+              <Text style={styles.botaoTexto}>+</Text>
             </TouchableOpacity>
           </View>
         )}
       />
 
-
-      <Text style={styles.botaoCarrinhoTexto}>
-           Ver Carrinho
-        </Text>
+      <TouchableOpacity
+        style={[styles.botaoCarrinho, { backgroundColor: cores.principal }]}
+        onPress={() => navigation.navigate("Carrinho")}
+      >
+        <Text style={styles.botaoCarrinhoTexto}>Ver Carrinho</Text>
       </TouchableOpacity>
     </View>
   );
