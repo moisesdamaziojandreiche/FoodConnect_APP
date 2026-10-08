@@ -28,14 +28,19 @@ if (supabaseUrl && supabaseAnonKey) {
   );
 }
 
+const NAO_CONFIGURADO = { message: "Supabase não configurado" };
+
+// Usado só quando as chaves não estão configuradas (as telas checam supabase.from).
 const stub = {
   auth: {
-    signInWithPassword: async () => ({ data: null, error: { message: "Supabase não configurado" } }),
-    signUp: async () => ({ data: null, error: { message: "Supabase não configurado" } }),
-    resetPasswordForEmail: async () => ({ data: null, error: { message: "Supabase não configurado" } }),
+    signInWithPassword: async () => ({ data: null, error: NAO_CONFIGURADO }),
+    signUp: async () => ({ data: null, error: NAO_CONFIGURADO }),
+    resetPasswordForEmail: async () => ({ data: null, error: NAO_CONFIGURADO }),
+    signOut: async () => ({ error: null }),
+    getUser: async () => ({ data: { user: null }, error: NAO_CONFIGURADO }),
   },
   functions: {
-    invoke: async () => ({ data: null, error: { message: "Supabase functions não configurado" } }),
+    invoke: async () => ({ data: null, error: NAO_CONFIGURADO }),
   },
 };
 

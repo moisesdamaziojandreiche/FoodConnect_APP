@@ -11,6 +11,7 @@ import ProfileScreen from "./src/screens/ProfileScreen";
 import SearchScreen from "./src/screens/SearchScreen";
 import {ThemeProvider} from "./src/context/ThemeContext";
 import FavoriteScreen from "./src/screens/FavoriteScreen";
+import OrdersScreen from "./src/screens/OrdersScreen";
 
 
 
@@ -67,6 +68,14 @@ export default function App() {
           <Stack.Screen
             name="Favoritos"
             component={FavoriteScreen}
+          />
+
+          <Stack.Screen
+            name="Pedidos"
+            component={OrdersScreen}
+            options={{
+              title: "Meus Pedidos",
+            }}
           />
 
         </Stack.Navigator>

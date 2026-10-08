@@ -1,46 +1,27 @@
 import React, { useContext } from "react";
 import {
-  View,
-  Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-import { useRestaurantes } from "../data/restaurantes";
 import Menu from "../components/Menu";
+import { useRestaurantes, textoHorario } from "../data/restaurantes";
 import { ThemeContext } from "../context/ThemeContext";
 
-export default function HomeScreen({
-  navigation,
-}) {
-  const { cores } =
-    useContext(ThemeContext);
+export default function HomeScreen({ navigation }) {
+  const { cores } = useContext(ThemeContext);
   const { restaurantes, carregando, erro } = useRestaurantes();
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor:
-            cores.fundo,
-        },
-      ]}
-    >
-      <Text
-        style={[
-          styles.title,
-          {
-            color: cores.texto,
-          },
-        ]}
-      >
-        Restaurantes
-      </Text>
-
+    <View style={[styles.container, { backgroundColor: cores.fundo }]}>
+      <Text style={[styles.titulo, { color: cores.texto }]}>Restaurantes</Text>
       <FlatList
         data={restaurantes}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.lista}
         ListEmptyComponent={
           <Text style={{ color: cores.secundario }}>
             {carregando
@@ -50,66 +31,29 @@ export default function HomeScreen({
               : "Nenhum restaurante disponível."}
           </Text>
         }
-        keyExtractor={(item) =>
-          item.id.toString()
-        }
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[
-              styles.card,
-              {
-                backgroundColor:
-                  cores.card,
-              },
-            ]}
+            style={[styles.card, { backgroundColor: cores.card }]}
             onPress={() =>
-              navigation.navigate(
-                "Restaurant",
-                {
-                  restaurante: item,
-                }
-              )
+              navigation.navigate("Restaurant", { restaurante: item })
             }
           >
-            <Text
-              style={[
-                styles.nome,
-                {
-                  color:
-                    cores.texto,
-                },
-              ]}
-            >
+            <Text style={[styles.nome, { color: cores.texto }]}>
               {item.nome}
             </Text>
-
-            <Text
-              style={[
-                styles.categoria,
-                {
-                  color:
-                    cores.secundario,
-                },
-              ]}
-            >
-              {item.categoria}
-            </Text>
-
-            <Text
-              style={[
-                styles.nota,
-                {
-                  color:
-                    cores.principal,
-                },
-              ]}
-            >
-              ⭐ {item.nota}
-            </Text>
+            {!!item.descricao && (
+              <Text style={[styles.descricao, { color: cores.secundario }]}>
+                {item.descricao}
+              </Text>
+            )}
+            {!!textoHorario(item) && (
+              <Text style={[styles.horario, { color: cores.principal }]}>
+                {textoHorario(item)}
+              </Text>
+            )}
           </TouchableOpacity>
         )}
       />
-
       <Menu navigation={navigation} />
     </View>
   );
@@ -121,31 +65,28 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingBottom: 80,
   },
-
-  title: {
-    fontSize: 28,
+  titulo: {
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 15,
   },
-
+  lista: {
+    flexGrow: 1,
+  },
   card: {
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    elevation: 3,
+    borderRadius: 8,
+    marginBottom: 12,
   },
-
   nome: {
     fontSize: 18,
     fontWeight: "bold",
   },
-
-  categoria: {
+  descricao: {
     marginTop: 5,
   },
-
-  nota: {
-    marginTop: 5,
-    fontWeight: "bold",
+  horario: {
+    marginTop: 6,
+    fontWeight: "600",
   },
 });

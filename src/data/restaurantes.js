@@ -9,9 +9,16 @@ export async function listarRestaurantes() {
 
   return supabase
     .from("empresas")
-    .select("id, nome, descricao, categoria, nota, tempo_preparo_min, endereco, telefone, logo_url")
+    .select("id, nome, descricao, endereco, telefone, logo_url, imagem_capa_url, horario_abertura, horario_fechamento")
     .eq("ativo", true)
     .order("nome");
+}
+
+export function textoHorario(restaurante) {
+  const { horario_abertura, horario_fechamento } = restaurante || {};
+  if (!horario_abertura || !horario_fechamento) return "";
+
+  return `${horario_abertura.slice(0, 5)} às ${horario_fechamento.slice(0, 5)}`;
 }
 
 // Produtos cadastrados pelo restaurante no painel.
@@ -22,7 +29,6 @@ export async function listarProdutos(empresaId) {
     .from("produtos")
     .select("id, nome, descricao, preco, imagem_url")
     .eq("empresa_id", empresaId)
-    .order("ordem")
     .order("nome");
 }
 

@@ -10,7 +10,7 @@ import {
 
 import { carrinho } from "../data/carrinho";
 import { favoritos } from "../data/favoritos";
-import { listarProdutos } from "../data/restaurantes";
+import { listarProdutos, textoHorario } from "../data/restaurantes";
 import { ThemeContext } from "../context/ThemeContext";
 
 
@@ -133,19 +133,15 @@ export default function RestaurantScreen({
         <Text style={styles.textoFavorito}>Favoritar</Text>
       </TouchableOpacity>
 
-      {!!restaurante.categoria && (
+      {!!restaurante.descricao && (
         <Text style={[styles.info, { color: cores.secundario }]}>
-          {restaurante.categoria}
+          {restaurante.descricao}
         </Text>
       )}
 
-      <Text style={[styles.info, { color: cores.secundario }]}>
-        {restaurante.nota ? `⭐ ${restaurante.nota}` : "Novo"}
-      </Text>
-
-      {!!restaurante.tempo_preparo_min && (
+      {!!textoHorario(restaurante) && (
         <Text style={[styles.info, { color: cores.secundario }]}>
-          Preparo: ~{restaurante.tempo_preparo_min} min
+          Funcionamento: {textoHorario(restaurante)}
         </Text>
       )}
 

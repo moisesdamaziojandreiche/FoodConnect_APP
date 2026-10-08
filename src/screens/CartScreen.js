@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import { carrinho } from "../data/carrinho";
 import { supabase } from "../lib/supabase";
+import { cpfValido, somenteDigitos } from "../../Cpf";
 import Menu from "../components/Menu";
 import { ThemeContext } from "../context/ThemeContext";
 
@@ -32,6 +33,36 @@ export default function CartScreen({ navigation }) {
   const [, atualizarTela] = useState(0);
   const [observacao, setObservacao] = useState("");
   const [enviando, setEnviando] = useState(false);
+
+  // Dados do cliente (tabela public.clientes). O CPF é exigido pelo Asaas.
+  const [cpfSalvo, setCpfSalvo] = useState(false);
+  const [cpf, setCpf] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarCliente() {
+      if (!supabase.from) return;
+
+      const { data: sessao } = await supabase.auth.getUser();
+      const usuario = sessao?.user;
+      if (!usuario) return;
+
+      const { data } = await supabase
+        .from("clientes")
+        .select("cpf")
+        .eq("id", usuario.id)
+        .maybeSingle();
+
+      if (ativo && data?.cpf) setCpfSalvo(true);
+    }
+
+    carregarCliente();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   const subtotal = carrinho.reduce(
     (soma, item) => soma + item.preco * item.quantidade,
@@ -55,23 +86,31 @@ export default function CartScreen({ navigation }) {
       return;
     }
 
+    if (!cpfSalvo && !cpfValido(cpf)) {
+      Alert.alert("CPF inválido", "Informe um CPF válido para o pagamento.");
+      return;
+    }
+
     setEnviando(true);
 
     // Só ids e quantidades: o servidor consulta os preços no banco.
+    // Corpo no formato esperado pela Edge Function create-payment.
     const { data, error } = await supabase.functions.invoke("create-payment", {
       body: {
-        restauranteId: carrinho[0].restauranteId,
-        items: carrinho.map((item) => ({
-          produtoId: item.id,
+        empresa_id: carrinho[0].restauranteId,
+        itens: carrinho.map((item) => ({
+          produto_id: item.id,
           quantidade: item.quantidade,
         })),
         observacao: observacao.trim(),
+        // Sem cpfCnpj, a função usa o CPF já salvo em "clientes".
+        ...(cpfSalvo ? {} : { cpfCnpj: somenteDigitos(cpf) }),
       },
     });
 
     setEnviando(false);
 
-    if (error || !data?.initPoint) {
+    if (error || !data?.invoice_url) {
       Alert.alert(
         "Pagamento indisponível",
         error ? await mensagemDeErro(error) : "Tente novamente."
@@ -79,12 +118,14 @@ export default function CartScreen({ navigation }) {
       return;
     }
 
+    if (!cpfSalvo) setCpfSalvo(true);
+
     // Pedido criado: esvazia o carrinho e abre o checkout.
     carrinho.length = 0;
     setObservacao("");
     atualizarTela((n) => n + 1);
 
-    await WebBrowser.openBrowserAsync(data.initPoint);
+    await WebBrowser.openBrowserAsync(data.invoice_url);
 
     // Depois do checkout, mostra o status do pedido (atualiza em tempo real).
     navigation.navigate("Pedidos");
@@ -158,6 +199,25 @@ export default function CartScreen({ navigation }) {
               ? `: ${carrinho[0].restauranteEndereco}`
               : ""}
           </Text>
+
+          {!cpfSalvo && (
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: cores.card,
+                  color: cores.texto,
+                  borderColor: cores.secundario,
+                },
+              ]}
+              placeholder="CPF (para o pagamento)"
+              placeholderTextColor={cores.secundario}
+              keyboardType="numeric"
+              value={cpf}
+              onChangeText={setCpf}
+              maxLength={14}
+            />
+          )}
 
           <TextInput
             style={[

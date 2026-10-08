@@ -1,20 +1,44 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import * as WebBrowser from "expo-web-browser";
 
 import { supabase } from "../lib/supabase";
 import Menu from "../components/Menu";
 import { ThemeContext } from "../context/ThemeContext";
 
-// Mesmos status que o painel do restaurante usa.
-const STATUS = {
-  aguardando_pagamento: "Aguardando pagamento",
-  pendente: "Pagamento aprovado — aguardando o restaurante",
-  aceito: "Pedido aceito",
-  preparando: "Em preparo",
-  pronto: "Pronto para retirada",
-  entregue: "Retirado",
-  cancelado: "Cancelado",
-};
+// Mesmos status que o painel do restaurante usa (check de pedidos.status no banco).
+function textoStatus(pedido) {
+  const retirada = !pedido.endereco_entrega;
+
+  switch (pedido.status) {
+    case "aguardando_pagamento":
+      return "Aguardando pagamento";
+    case "pendente":
+      return "Pagamento aprovado — aguardando o restaurante";
+    case "aceito":
+      return "Pedido aceito";
+    case "preparando":
+      return "Em preparo";
+    case "pronto":
+      return retirada ? "Pronto para retirada" : "Pronto";
+    case "saiu_para_entrega":
+      return "Saiu para entrega";
+    case "entregue":
+      return retirada ? "Retirado" : "Entregue";
+    case "cancelado":
+      return pedido.payment_status === "reembolsado"
+        ? "Cancelado — pagamento reembolsado"
+        : "Cancelado";
+    default:
+      return pedido.status;
+  }
+}
 
 export default function OrdersScreen({ navigation }) {
   const { cores } = useContext(ThemeContext);
@@ -33,7 +57,9 @@ export default function OrdersScreen({ navigation }) {
     // A RLS já garante que só voltam os pedidos do próprio cliente.
     const { data, error } = await supabase
       .from("pedidos")
-      .select("id, status, valor_total, created_at, empresas(nome, endereco)")
+      .select(
+        "id, status, payment_status, valor_total, endereco_entrega, asaas_invoice_url, created_at, empresas(nome, endereco)"
+      )
       .order("created_at", { ascending: false });
 
     setErro(error ? error.message : null);
@@ -102,19 +128,32 @@ export default function OrdersScreen({ navigation }) {
             </Text>
 
             <Text style={{ color: cores.principal, fontWeight: "bold" }}>
-              {STATUS[item.status] || item.status}
+              {textoStatus(item)}
             </Text>
 
-            {item.status === "pronto" && !!item.empresas?.endereco && (
-              <Text style={{ color: cores.texto, marginTop: 4 }}>
-                Retire em: {item.empresas.endereco}
-              </Text>
-            )}
+            {item.status === "pronto" &&
+              !item.endereco_entrega &&
+              !!item.empresas?.endereco && (
+                <Text style={{ color: cores.texto, marginTop: 4 }}>
+                  Retire em: {item.empresas.endereco}
+                </Text>
+              )}
 
             <Text style={{ color: cores.secundario, marginTop: 4 }}>
               R$ {Number(item.valor_total).toFixed(2)}  •{" "}
               {new Date(item.created_at).toLocaleString("pt-BR")}
             </Text>
+
+            {item.status === "aguardando_pagamento" &&
+              item.payment_status === "pendente" &&
+              !!item.asaas_invoice_url && (
+                <TouchableOpacity
+                  style={[styles.botaoPagar, { backgroundColor: cores.principal }]}
+                  onPress={() => WebBrowser.openBrowserAsync(item.asaas_invoice_url)}
+                >
+                  <Text style={styles.botaoPagarTexto}>Pagar agora</Text>
+                </TouchableOpacity>
+              )}
           </View>
         )}
       />
@@ -147,5 +186,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 4,
+  },
+
+  botaoPagar: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 8,
+  },
+
+  botaoPagarTexto: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });

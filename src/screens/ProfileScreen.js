@@ -24,34 +24,48 @@ export default function ProfileScreen({
 
   React.useEffect(() => {
     let mounted = true;
+
     async function loadUser() {
       try {
-        if (supabase && supabase.auth) {
-          if (typeof supabase.auth.getUser === "function") {
-            const { data, error } = await supabase.auth.getUser();
-            const user = data?.user;
-            if (user && mounted) {
-              setUserName(user.user_metadata?.name || user.email);
-              setUserEmail(user.email);
-            }
-          } else if (typeof supabase.auth.getSession === "function") {
-            const { data } = await supabase.auth.getSession();
-            const user = data?.session?.user;
-            if (user && mounted) {
-              setUserName(user.user_metadata?.name || user.email);
-              setUserEmail(user.email);
-            }
-          }
+        if (!supabase?.auth?.getUser) return;
+
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (!user || !mounted) return;
+
+        setUserEmail(user.email);
+        setUserName(user.user_metadata?.nome || user.email);
+
+        // O nome oficial fica em public.clientes
+        if (supabase.from) {
+          const { data: cliente } = await supabase
+            .from("clientes")
+            .select("nome")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (cliente?.nome && mounted) setUserName(cliente.nome);
         }
       } catch (e) {
         console.warn("Erro ao obter usuário do Supabase:", e);
       }
     }
+
     loadUser();
     return () => {
       mounted = false;
     };
   }, []);
+
+  async function encerrarSessao() {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Erro ao sair:", e);
+    }
+
+    navigation.replace("Login");
+  }
 
   return (
     <View
@@ -143,6 +157,35 @@ export default function ProfileScreen({
         </View>
 
         <TouchableOpacity
+          style={styles.item}
+          onPress={() =>
+            navigation.navigate(
+              "Pedidos"
+            )
+          }
+        >
+          <Text
+            style={[
+              styles.itemTexto,
+              {
+                color: cores.texto,
+              },
+            ]}
+          >
+            Meus Pedidos
+          </Text>
+
+          <Text
+            style={{
+              color:
+                cores.secundario,
+            }}
+          >
+            Acompanhar
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[
             styles.item, 
             {
@@ -181,11 +224,7 @@ export default function ProfileScreen({
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.botao}
-          onPress={() =>
-            navigation.replace(
-              "Login"
-            )
-          }
+          onPress={encerrarSessao}
         >
           <Text
             style={

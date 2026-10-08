@@ -43,6 +43,16 @@ export default function Menu({
 
       <TouchableOpacity
         onPress={() =>
+          navigation.navigate("Pedidos")
+        }
+      >
+        <Text style={styles.icone}>
+          📦
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() =>
           navigation.navigate("Perfil")
         }
       >

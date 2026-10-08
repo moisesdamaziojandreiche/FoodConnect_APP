@@ -9,6 +9,7 @@ import {
   Image
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import { cpfValido, somenteDigitos } from "../../Cpf";
 
 const logo = require("../../assets/FoodConnectImage.png");
 
@@ -16,6 +17,8 @@ export default function RegisterScreen({
   navigation,
 }) {
   const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] =
@@ -43,10 +46,26 @@ export default function RegisterScreen({
       return;
     }
 
+    // CPF é opcional aqui (o carrinho pede de novo se faltar), mas se vier
+    // preenchido precisa ser válido: a coluna clientes.cpf tem CHECK no banco.
+    if (cpf && !cpfValido(cpf)) {
+      Alert.alert("Erro", "CPF inválido");
+      return;
+    }
+
+    // Metadados lidos pelo trigger criar_conta_no_cadastro() do banco,
+    // que cria a linha em public.clientes.
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: senha,
-      options: { data: { nome: nome.trim() } },
+      options: {
+        data: {
+          tipo_cadastro: "cliente",
+          nome: nome.trim(),
+          cpf: somenteDigitos(cpf),
+          telefone: telefone.trim(),
+        },
+      },
     });
 
     if (error) {
@@ -85,8 +104,27 @@ export default function RegisterScreen({
       <TextInput
         style={styles.input}
         placeholder="E-mail"
+        keyboardType="email-address"
+        autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="CPF (opcional)"
+        keyboardType="numeric"
+        maxLength={14}
+        value={cpf}
+        onChangeText={setCpf}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Telefone (opcional)"
+        keyboardType="phone-pad"
+        value={telefone}
+        onChangeText={setTelefone}
       />
 
       <TextInput

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import { favoritos } from "../data/favoritos";
+import { textoHorario } from "../data/restaurantes";
 import Menu from "../components/Menu";
 import { ThemeContext } from "../context/ThemeContext";
 
@@ -106,27 +107,32 @@ export default function FavoriteScreen({
                 {item.nome}
               </Text>
 
-              <Text
-                style={[
-                  styles.categoria,
-                  {
-                    color: cores.secundario,
-                  },
-                ]}
-              >
-                {item.categoria}
-              </Text>
+              {!!item.descricao && (
+                <Text
+                  style={[
+                    styles.categoria,
+                    {
+                      color: cores.secundario,
+                    },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {item.descricao}
+                </Text>
+              )}
 
-              <Text
-                style={[
-                  styles.nota,
-                  {
-                    color: cores.principal,
-                  },
-                ]}
-              >
-                ⭐ {item.nota}
-              </Text>
+              {!!textoHorario(item) && (
+                <Text
+                  style={[
+                    styles.nota,
+                    {
+                      color: cores.principal,
+                    },
+                  ]}
+                >
+                  🕒 {textoHorario(item)}
+                </Text>
+              )}
 
               <TouchableOpacity
                 style={
